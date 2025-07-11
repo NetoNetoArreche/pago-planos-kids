@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,15 +7,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import type { Tables } from '@/integrations/supabase/types';
 
-interface Plan {
-  id: string;
-  name: string;
-  type: 'free' | 'premium' | 'vip';
-  price: number;
-  description: string;
-  features: string[];
-}
+type Plan = Tables<'plans'> & {
+  features: string[]; // We'll ensure this is always string[] after processing
+};
 
 export default function Plans() {
   const [plans, setPlans] = useState<Plan[]>([]);
@@ -38,7 +33,13 @@ export default function Plans() {
 
       if (error) throw error;
 
-      setPlans(data || []);
+      // Transform the data to ensure features is always string[]
+      const transformedPlans: Plan[] = (data || []).map(plan => ({
+        ...plan,
+        features: Array.isArray(plan.features) ? plan.features as string[] : []
+      }));
+
+      setPlans(transformedPlans);
     } catch (error) {
       console.error('Erro ao buscar planos:', error);
       toast({
