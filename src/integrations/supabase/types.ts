@@ -14,7 +14,104 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      plans: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          features: Json | null
+          id: string
+          name: string
+          price: number
+          type: Database["public"]["Enums"]["plan_type"]
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          features?: Json | null
+          id?: string
+          name: string
+          price: number
+          type: Database["public"]["Enums"]["plan_type"]
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          features?: Json | null
+          id?: string
+          name?: string
+          price?: number
+          type?: Database["public"]["Enums"]["plan_type"]
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          full_name: string | null
+          id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email?: string | null
+          full_name?: string | null
+          id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          mercadopago_subscription_id: string | null
+          plan_id: string
+          started_at: string | null
+          status: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          mercadopago_subscription_id?: string | null
+          plan_id: string
+          started_at?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          mercadopago_subscription_id?: string | null
+          plan_id?: string
+          started_at?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +120,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      plan_type: "free" | "premium" | "vip"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +247,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      plan_type: ["free", "premium", "vip"],
+    },
   },
 } as const
