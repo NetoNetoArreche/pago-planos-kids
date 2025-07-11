@@ -14,7 +14,10 @@ serve(async (req) => {
   }
 
   try {
-    console.log('Webhook received:', req.method, req.url)
+    console.log('=== WEBHOOK RECEIVED ===')
+    console.log('Method:', req.method)
+    console.log('URL:', req.url)
+    console.log('Headers:', Object.fromEntries(req.headers.entries()))
     
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -29,7 +32,7 @@ serve(async (req) => {
 
     // Parse webhook data
     const body = await req.json()
-    console.log('Webhook body:', body)
+    console.log('Webhook body:', JSON.stringify(body, null, 2))
 
     // Handle payment notifications
     if (body.type === 'payment') {
@@ -39,8 +42,11 @@ serve(async (req) => {
         return new Response('OK', { status: 200 })
       }
 
+      console.log('=== PROCESSING PAYMENT ===')
+      console.log('Payment ID:', paymentId)
+
       // Get payment details from Mercado Pago
-      console.log('Fetching payment details for:', paymentId)
+      console.log('Fetching payment details from Mercado Pago...')
       const paymentResponse = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
@@ -48,12 +54,14 @@ serve(async (req) => {
       })
 
       if (!paymentResponse.ok) {
-        console.error('Error fetching payment:', paymentResponse.status)
+        console.error('Error fetching payment. Status:', paymentResponse.status)
+        const errorText = await paymentResponse.text()
+        console.error('Error response:', errorText)
         return new Response('Error fetching payment', { status: 500 })
       }
 
       const payment = await paymentResponse.json()
-      console.log('Payment details:', payment)
+      console.log('Payment details:', JSON.stringify(payment, null, 2))
 
       // Extract user and plan info from external_reference or metadata
       const externalRef = payment.external_reference
@@ -64,43 +72,80 @@ serve(async (req) => {
 
       if (externalRef && externalRef.includes('_')) {
         [userId, planId] = externalRef.split('_')
+        console.log('Extracted from external_reference - User ID:', userId, 'Plan ID:', planId)
       } else if (metadata) {
         userId = metadata.user_id
         planId = metadata.plan_id
+        console.log('Extracted from metadata - User ID:', userId, 'Plan ID:', planId)
       } else {
         console.error('Unable to extract user/plan info from payment')
+        console.error('External reference:', externalRef)
+        console.error('Metadata:', metadata)
         return new Response('OK', { status: 200 })
       }
 
-      console.log('Processing payment for user:', userId, 'plan:', planId, 'status:', payment.status)
+      console.log('=== PAYMENT STATUS PROCESSING ===')
+      console.log('Payment Status:', payment.status)
+      console.log('Payment Status Detail:', payment.status_detail)
+      console.log('User:', userId)
+      console.log('Plan:', planId)
 
       // Update subscription based on payment status
       let subscriptionStatus = 'pending'
       let startedAt = null
       let expiresAt = null
 
-      if (payment.status === 'approved') {
-        subscriptionStatus = 'active'
-        startedAt = new Date().toISOString()
-        // Set expiration to 30 days from now
-        const expDate = new Date()
-        expDate.setDate(expDate.getDate() + 30)
-        expiresAt = expDate.toISOString()
-      } else if (payment.status === 'rejected' || payment.status === 'cancelled') {
-        subscriptionStatus = 'cancelled'
+      switch (payment.status) {
+        case 'approved':
+          console.log('Payment approved - activating subscription')
+          subscriptionStatus = 'active'
+          startedAt = new Date().toISOString()
+          // Set expiration to 30 days from now
+          const expDate = new Date()
+          expDate.setDate(expDate.getDate() + 30)
+          expiresAt = expDate.toISOString()
+          break
+        
+        case 'rejected':
+        case 'cancelled':
+          console.log('Payment rejected/cancelled - cancelling subscription')
+          subscriptionStatus = 'cancelled'
+          break
+        
+        case 'pending':
+        case 'in_process':
+          console.log('Payment pending/in_process - keeping pending status')
+          subscriptionStatus = 'pending'
+          break
+        
+        case 'authorized':
+          console.log('Payment authorized - keeping pending until captured')
+          subscriptionStatus = 'pending'
+          break
+        
+        default:
+          console.log('Unknown payment status:', payment.status)
+          subscriptionStatus = 'pending'
       }
 
-      // Update or create subscription
-      const { data: existingSubscription } = await supabaseClient
+      console.log('Final subscription status:', subscriptionStatus)
+
+      // First, try to find existing subscription
+      console.log('Looking for existing subscription...')
+      const { data: existingSubscriptions } = await supabaseClient
         .from('subscriptions')
         .select('*')
         .eq('user_id', userId)
         .eq('plan_id', planId)
-        .eq('status', 'pending')
-        .single()
+        .in('status', ['pending', 'active'])
 
-      if (existingSubscription) {
+      console.log('Found subscriptions:', existingSubscriptions?.length || 0)
+
+      if (existingSubscriptions && existingSubscriptions.length > 0) {
         // Update existing subscription
+        const subscription = existingSubscriptions[0]
+        console.log('Updating existing subscription:', subscription.id)
+        
         const { error: updateError } = await supabaseClient
           .from('subscriptions')
           .update({
@@ -108,8 +153,9 @@ serve(async (req) => {
             started_at: startedAt,
             expires_at: expiresAt,
             updated_at: new Date().toISOString(),
+            mercadopago_subscription_id: payment.id.toString(),
           })
-          .eq('id', existingSubscription.id)
+          .eq('id', subscription.id)
 
         if (updateError) {
           console.error('Error updating subscription:', updateError)
@@ -118,6 +164,7 @@ serve(async (req) => {
         }
       } else {
         // Create new subscription
+        console.log('Creating new subscription...')
         const { error: createError } = await supabaseClient
           .from('subscriptions')
           .insert({
@@ -135,12 +182,18 @@ serve(async (req) => {
           console.log('Subscription created successfully')
         }
       }
+
+      console.log('=== WEBHOOK PROCESSING COMPLETE ===')
+    } else {
+      console.log('Non-payment webhook type:', body.type)
     }
 
     return new Response('OK', { status: 200 })
 
   } catch (error) {
+    console.error('=== WEBHOOK ERROR ===')
     console.error('Webhook error:', error)
+    console.error('Error stack:', error.stack)
     return new Response('Error', { status: 500 })
   }
 })

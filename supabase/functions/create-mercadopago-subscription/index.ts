@@ -39,7 +39,10 @@ serve(async (req) => {
     }
 
     const { planId } = await req.json()
-    console.log('Creating subscription for user:', user.id, 'plan:', planId)
+    console.log('=== PAYMENT CREATION START ===')
+    console.log('User ID:', user.id)
+    console.log('Plan ID:', planId)
+    console.log('User Email:', user.email)
 
     // Get plan details
     const { data: plan, error: planError } = await supabaseClient
@@ -56,8 +59,11 @@ serve(async (req) => {
       )
     }
 
+    console.log('Plan details:', plan)
+
     // If it's a free plan, just create the subscription locally
     if (plan.type === 'free') {
+      console.log('Creating free subscription...')
       const { data: subscription, error: subError } = await supabaseClient
         .from('subscriptions')
         .insert({
@@ -70,13 +76,14 @@ serve(async (req) => {
         .single()
 
       if (subError) {
-        console.error('Subscription error:', subError)
+        console.error('Free subscription error:', subError)
         return new Response(
           JSON.stringify({ error: 'Erro ao criar assinatura' }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
 
+      console.log('Free subscription created successfully:', subscription.id)
       return new Response(
         JSON.stringify({ success: true, subscription }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -92,6 +99,9 @@ serve(async (req) => {
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
+
+    console.log('Creating Mercado Pago preference...')
+    console.log('Access token configured:', !!accessToken)
 
     // Create preference for Mercado Pago
     const preference = {
@@ -116,11 +126,14 @@ serve(async (req) => {
       metadata: {
         user_id: user.id,
         plan_id: planId,
+        plan_name: plan.name,
+        plan_price: plan.price,
+        user_email: user.email,
       },
       notification_url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/mercadopago-webhook`,
     }
 
-    console.log('Creating MP preference:', preference)
+    console.log('MP preference payload:', JSON.stringify(preference, null, 2))
 
     const mpResponse = await fetch('https://api.mercadopago.com/checkout/preferences', {
       method: 'POST',
@@ -132,17 +145,26 @@ serve(async (req) => {
     })
 
     const mpData = await mpResponse.json()
-    console.log('MP response:', mpData)
+    console.log('MP response status:', mpResponse.status)
+    console.log('MP response data:', JSON.stringify(mpData, null, 2))
 
     if (!mpResponse.ok) {
       console.error('Mercado Pago error:', mpData)
       return new Response(
-        JSON.stringify({ error: 'Erro ao criar pagamento', details: mpData }),
+        JSON.stringify({ 
+          error: 'Erro ao criar pagamento', 
+          details: mpData,
+          debug: {
+            status: mpResponse.status,
+            preference: preference
+          }
+        }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
     // Create pending subscription
+    console.log('Creating pending subscription in database...')
     const { data: subscription, error: subError } = await supabaseClient
       .from('subscriptions')
       .insert({
@@ -155,26 +177,41 @@ serve(async (req) => {
       .single()
 
     if (subError) {
-      console.error('Subscription error:', subError)
+      console.error('Subscription creation error:', subError)
       return new Response(
         JSON.stringify({ error: 'Erro ao criar assinatura' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
+    console.log('Subscription created successfully:', subscription.id)
+    console.log('Redirecting to Mercado Pago:', mpData.init_point)
+    console.log('=== PAYMENT CREATION END ===')
+
     return new Response(
       JSON.stringify({ 
         success: true, 
         init_point: mpData.init_point,
-        subscription_id: subscription.id 
+        subscription_id: subscription.id,
+        preference_id: mpData.id,
+        debug: {
+          plan_type: plan.type,
+          plan_price: plan.price,
+          external_reference: preference.external_reference
+        }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 
   } catch (error) {
+    console.error('=== PAYMENT CREATION ERROR ===')
     console.error('Function error:', error)
+    console.error('Error stack:', error.stack)
     return new Response(
-      JSON.stringify({ error: 'Erro interno do servidor' }),
+      JSON.stringify({ 
+        error: 'Erro interno do servidor',
+        debug: error.message
+      }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
