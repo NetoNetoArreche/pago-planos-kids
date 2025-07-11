@@ -16,6 +16,7 @@ type Plan = Tables<'plans'> & {
 export default function Plans() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
+  const [processingPlan, setProcessingPlan] = useState<string | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -66,14 +67,38 @@ export default function Plans() {
       return;
     }
 
-    // Aqui será a integração com Mercado Pago
-    toast({
-      title: "Redirecionando para pagamento",
-      description: `Processando assinatura do plano ${plan.name}...`,
-    });
-    
-    // Por enquanto, vamos para o dashboard
-    navigate('/dashboard');
+    setProcessingPlan(plan.id);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('create-mercadopago-subscription', {
+        body: { planId: plan.id }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (data.init_point) {
+        // Redirect to Mercado Pago checkout
+        window.location.href = data.init_point;
+      } else {
+        // For free plans or direct activation
+        toast({
+          title: "Sucesso!",
+          description: `Plano ${plan.name} ativado com sucesso!`,
+        });
+        navigate('/dashboard');
+      }
+    } catch (error) {
+      console.error('Erro ao processar plano:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível processar a assinatura. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setProcessingPlan(null);
+    }
   };
 
   const getIcon = (type: string) => {
@@ -153,8 +178,16 @@ export default function Plans() {
                   className="w-full" 
                   variant={plan.type === 'premium' ? 'default' : 'outline'}
                   onClick={() => handleSelectPlan(plan)}
+                  disabled={processingPlan === plan.id}
                 >
-                  {plan.type === 'free' ? 'Grátis' : 'Assinar Agora'}
+                  {processingPlan === plan.id ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Processando...
+                    </>
+                  ) : (
+                    plan.type === 'free' ? 'Grátis' : 'Assinar Agora'
+                  )}
                 </Button>
               </CardContent>
             </Card>

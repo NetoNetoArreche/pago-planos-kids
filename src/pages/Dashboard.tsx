@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,6 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Crown, Star, Zap, LogOut, CreditCard } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { PaymentStatus } from '@/components/PaymentStatus';
 
 interface UserSubscription {
   id: string;
@@ -93,6 +93,8 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 to-secondary/5">
+      <PaymentStatus />
+      
       {/* Header */}
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-6xl mx-auto px-4 py-4">
