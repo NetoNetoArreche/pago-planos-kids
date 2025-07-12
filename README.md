@@ -1,73 +1,169 @@
-# Welcome to your Lovable project
 
-## Project info
+# 🚀 Template - Sistema de Pagamentos com Mercado Pago e Supabase
 
-**URL**: https://lovable.dev/projects/9be5e35c-4f76-42d7-a24e-4ac441ba5f02
+Um template completo e pronto para uso que implementa um sistema de pagamentos recorrentes usando **Mercado Pago** e **Supabase**.
 
-## How can I edit this code?
+## ✨ Principais Recursos
 
-There are several ways of editing your application.
+- 💳 **Pagamentos Recorrentes** - Sistema completo de assinaturas
+- 🔐 **Autenticação Segura** - Login/registro com Supabase Auth
+- 🎨 **Interface Moderna** - Design responsivo com Tailwind CSS
+- 🔄 **Webhook Automático** - Sincronização de pagamentos em tempo real
+- 🛡️ **Segurança RLS** - Row Level Security configurado
+- 📱 **Mobile First** - Totalmente responsivo
 
-**Use Lovable**
+## 🎯 Para quem é este template?
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/9be5e35c-4f76-42d7-a24e-4ac441ba5f02) and start prompting.
+- Desenvolvedores que querem implementar pagamentos rapidamente
+- Startups que precisam de um sistema de assinaturas
+- Freelancers criando soluções para clientes
+- Estudantes aprendendo integração de pagamentos
 
-Changes made via Lovable will be committed automatically to this repo.
+## 🚀 Configuração Rápida (5 minutos)
 
-**Use your preferred IDE**
+### 1. Use este template
+```bash
+# Clique em "Use this template" no GitHub ou:
+git clone <your-repo-url>
+cd mercadopago-supabase-template
+npm install
+```
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### 2. Configuração automática
+```bash
+npm run setup
+```
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+### 3. Inicie o projeto
+```bash
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+**📖 [Guia Completo de Configuração →](./SETUP.md)**
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## 🏗️ Tecnologias Utilizadas
 
-**Use GitHub Codespaces**
+- **Frontend**: React + TypeScript + Vite
+- **Styling**: Tailwind CSS + Shadcn/UI
+- **Backend**: Supabase (Database + Auth + Edge Functions)
+- **Pagamentos**: Mercado Pago API
+- **Deploy**: Vercel/Netlify Ready
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## 📊 Estrutura do Projeto
 
-## What technologies are used for this project?
+```
+src/
+├── components/          # Componentes reutilizáveis
+│   ├── ui/             # Componentes base (Shadcn)
+│   └── PaymentStatus.tsx
+├── pages/              # Páginas principais
+│   ├── Plans.tsx       # Página de planos
+│   ├── Dashboard.tsx   # Dashboard do usuário
+│   └── Auth.tsx        # Autenticação
+├── hooks/              # Hooks customizados
+│   └── useAuth.tsx     # Contexto de autenticação
+└── integrations/       # Integrações externas
+    └── supabase/       # Cliente Supabase
 
-This project is built with:
+supabase/
+├── functions/          # Edge Functions
+│   ├── create-mercadopago-subscription/
+│   └── mercadopago-webhook/
+└── migrations/         # Migrations SQL
+```
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## 💳 Planos Incluídos
 
-## How can I deploy this project?
+| Plano | Preço | Recursos |
+|-------|-------|----------|
+| 🆓 Gratuito | R$ 0,00 | Recursos básicos |
+| ⭐ Premium | R$ 29,90 | Recursos avançados |
+| 👑 VIP | R$ 59,90 | Todos os recursos |
 
-Simply open [Lovable](https://lovable.dev/projects/9be5e35c-4f76-42d7-a24e-4ac441ba5f02) and click on Share -> Publish.
+*Preços totalmente personalizáveis*
 
-## Can I connect a custom domain to my Lovable project?
+## 🧪 Testando Pagamentos
 
-Yes, you can!
+Use os cartões de teste oficiais do Mercado Pago:
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+- **Visa**: `4509 9535 6623 3704` (Nome: APRO)
+- **Mastercard**: `5031 7557 3453 0604` (Nome: APRO)
+- **Amex**: `3711 803032 57522` (Nome: APRO)
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+## 🔧 Scripts Disponíveis
+
+```bash
+npm run dev          # Inicia desenvolvimento
+npm run setup        # Configuração automática
+npm run validate     # Valida configurações
+npm run build        # Build para produção
+npm run preview      # Preview do build
+```
+
+## 🎨 Personalização
+
+### Modificar Planos
+```sql
+UPDATE public.plans SET 
+  name = 'Seu Plano',
+  price = 99.90,
+  description = 'Sua descrição personalizada'
+WHERE type = 'premium';
+```
+
+### Alterar Cores/Design
+- **Cores**: Edite `src/index.css`
+- **Componentes**: Modifique arquivos em `src/components/`
+- **Layout**: Ajuste páginas em `src/pages/`
+
+## 📱 Screenshots
+
+| Página de Planos | Dashboard | Checkout |
+|---|---|---|
+| ![Plans](https://via.placeholder.com/200x120?text=Plans) | ![Dashboard](https://via.placeholder.com/200x120?text=Dashboard) | ![Checkout](https://via.placeholder.com/200x120?text=Checkout) |
+
+## 🌟 Casos de Uso
+
+- **SaaS** - Software como serviço
+- **Cursos Online** - Plataformas educacionais  
+- **Streaming** - Conteúdo digital
+- **Fitness Apps** - Aplicativos de treino
+- **Newsletters** - Conteúdo premium
+- **E-commerce** - Assinaturas de produtos
+
+## 📋 Requisitos
+
+- Node.js 18+
+- Conta Supabase (gratuita)
+- Conta Mercado Pago (gratuita)
+- Git
+
+## 🆘 Precisa de Ajuda?
+
+- 📖 [Documentação Completa](./SETUP.md)
+- 🐛 [Reportar Bug](./issues)
+- 💬 [Discussões](./discussions)
+- 📧 Email: suporte@exemplo.com
+
+## 🤝 Contribuindo
+
+Contribuições são bem-vindas! Veja nosso [guia de contribuição](./CONTRIBUTING.md).
+
+## 📄 Licença
+
+Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](./LICENSE) para detalhes.
+
+---
+
+## 🚀 Pronto para começar?
+
+1. **[Use este template](../../generate)** no GitHub
+2. **[Siga o guia de setup](./SETUP.md)** 
+3. **Customize** para suas necessidades
+4. **Deploy** e comece a receber pagamentos!
+
+**⭐ Se este template te ajudou, deixe uma estrela!**
+
+---
+
+*Desenvolvido com ❤️ para a comunidade de desenvolvedores brasileiros*
